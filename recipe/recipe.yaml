@@ -15,16 +15,17 @@ source:
     - find-tango.patch
 
 build:
-  number: 2
-  skip: win
+  number: 3
 
 requirements:
   build:
     - cmake
-    - make
     - ${{ compiler('cxx') }}
     - ${{ stdlib('c') }}
-    - pkg-config
+    - if: unix
+      then:
+        - make
+        - pkg-config
   host:
     - cppzmq
     - cpptango
@@ -39,7 +40,8 @@ requirements:
 tests:
   - package_contents:
       files:
-        - lib/cmake/libhdbpp/libhdbppConfig.cmake
+        - if: unix
+          then: lib/cmake/libhdbpp/libhdbppConfig.cmake
       lib:
         - hdb++
       include:

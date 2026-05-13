@@ -1,11 +1,10 @@
 schema_version: 1
 
 context:
-  name: libhdbpp
   version: 2.2.0
 
-package:
-  name: ${{ name|lower }}
+recipe:
+  name: libhdbpp-split
   version: ${{ version }}
 
 source:
@@ -15,35 +14,90 @@ source:
     - find-tango.patch
 
 build:
-  number: 2
+  number: 3
   skip: win
 
-requirements:
-  build:
-    - cmake
-    - make
-    - ${{ compiler('cxx') }}
-    - ${{ stdlib('c') }}
-    - pkg-config
-  host:
-    - cppzmq
-    - cpptango
-    - omniorb-libs
-  run_exports:
-    - ${{ pin_subpackage('libhdbpp', upper_bound='x.x') }}
-  # Library doesn't link against cpptango (only headers used)
-  ignore_run_exports:
-    from_package:
-      - cpptango
+outputs:
+  - staging:
+      name: libhdbpp-build
+    requirements:
+      ignore_run_exports:
+        from_package:
+          - libhdbpp
+      build:
+        - cmake
+        - ninja
+        - if: unix
+          then:
+            - pkg-config
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+      host:
+        - cppzmq
+        - cpptango
+        - omniorb-libs
+    build:
+      script:
+        env:
+          LIBHDBPP_VERSION: ${{ version }}
+        file: build
 
-tests:
-  - package_contents:
+  - package:
+      name: libhdbpp
+    inherit: libhdbpp-build
+    build:
       files:
-        - lib/cmake/libhdbpp/libhdbppConfig.cmake
-      lib:
-        - hdb++
-      include:
-        - hdb++/AbstractDB.h
+        - if: linux
+          then:
+            - lib/libhdb++.so
+            - lib/libhdb++.so.2
+            - lib/libhdb++.so.${{ version }}
+        - if: osx
+          then:
+            - lib/libhdb++*.dylib
+        - if: unix
+          then:
+            - lib/cmake/libhdbpp/**
+            - include/hdb++/**
+    requirements:
+      run_exports:
+        - ${{ pin_subpackage('libhdbpp', upper_bound='x.x') }}
+      # Library doesn't link against cpptango (only headers used)
+      ignore_run_exports:
+        from_package:
+          - cpptango
+    tests:
+      - package_contents:
+          lib:
+            - hdb++
+          include:
+            - hdb++/AbstractDB.h
+          files:
+            - if: unix
+              then:
+                - lib/cmake/libhdbpp/libhdbppConfig.cmake
+
+  - package:
+      name: libhdbpp-dbg
+    inherit:
+      from: libhdbpp-build
+      run_exports: false
+    build:
+      skip:
+        - not linux
+      dynamic_linking:
+        # Prevent dbg file to be modified
+        # Will raise CRC mismatch otherwise!
+        binary_relocation: false
+      files:
+        - lib/libhdb++.so.${{ version }}.dbg
+    requirements:
+      run:
+        - ${{ pin_subpackage('libhdbpp', exact=True) }}
+    tests:
+      - package_contents:
+          files:
+            - lib/libhdb++.so.${{ version }}.dbg
 
 about:
   license: LGPL-3.0-or-later
@@ -58,5 +112,6 @@ about:
   documentation: https://tango-controls.readthedocs.io/en/latest/Explanation/archiving/hdbpp.html
 
 extra:
+  feedstock-name: libhdbpp
   recipe-maintainers:
     - beenje

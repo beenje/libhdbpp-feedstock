@@ -5,21 +5,19 @@
 jobs:
 - job: osx
   pool:
-    vmImage: macOS-13
+    vmImage: $(VMIMAGE)
   strategy:
     matrix:
-      osx_64_omniorb_libs4.2:
-        CONFIG: osx_64_omniorb_libs4.2
+      osx_64_:
+        CONFIG: osx_64_
         UPLOAD_PACKAGES: 'True'
-      osx_64_omniorb_libs4.3:
-        CONFIG: osx_64_omniorb_libs4.3
+        VMIMAGE: macOS-15
+        store_build_artifacts: false
+      osx_arm64_:
+        CONFIG: osx_arm64_
         UPLOAD_PACKAGES: 'True'
-      osx_arm64_omniorb_libs4.2:
-        CONFIG: osx_arm64_omniorb_libs4.2
-        UPLOAD_PACKAGES: 'True'
-      osx_arm64_omniorb_libs4.3:
-        CONFIG: osx_arm64_omniorb_libs4.3
-        UPLOAD_PACKAGES: 'True'
+        VMIMAGE: macOS-15-arm64
+        store_build_artifacts: false
   timeoutInMinutes: 360
   variables: {}
 
